@@ -33,6 +33,7 @@ library
   build-depends:
       base >=4.7 && <5
     , parsec
+    , time
   default-language: Haskell2010
 
 executable coqToMd-exe
@@ -46,6 +47,7 @@ executable coqToMd-exe
       base >=4.7 && <5
     , coqToMd
     , parsec
+    , time
   default-language: Haskell2010
 
 test-suite coqToMd-test
@@ -60,4 +62,5 @@ test-suite coqToMd-test
       base >=4.7 && <5
     , coqToMd
     , parsec
+    , time
   default-language: Haskell2010
