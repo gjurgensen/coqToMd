@@ -2,49 +2,45 @@
 
 module Parse where
 
+import Data.Char
+
 import Text.Parsec
 
 -- Count occurrences
 num x = length <$> many x
 
-unless p end = 
-  (end >> unexpected "Unexpected") <|> p
+nonspace :: Stream s m Char => ParsecT s u m Char
+nonspace = satisfy $ not . isSpace
 
-many1Till p end = do
-  x <- unless p end
-  y <- manyTill p end
-  pure $ x : y
-
-seeStr :: Stream s m Char => String -> ParsecT s u m String
-seeStr = try . lookAhead . string
+notStr = notFollowedBy . string
 
 mdSection :: Parsec String () String
 mdSection = do
-  content <- between (string "(**") (string "*)") $ do
+  between (string "(**") (string "*)") $ do
     -- n <- num (spaces >> char '*')
     spaces
-    n <- num $ char '*'
-    content <- manyTill (anyChar <|> newline) $ seeStr "*)"
+    n <- num (notStr "*)" >> char '*')
+    content <- many (notStr "*)" >> anyChar)
     pure $ replicate n '#' ++ content
-  spaces
-  pure content
 
-coqSection = do 
-  content <- many1Till anyChar $ seeStr "(**"
+-- TODO: should coq section be ended prematurely if the only characters left are spaces?
+coqSection = try $ do 
+  padding <- many space
+  c <- notStr "(**" >> nonspace
+  ontent <- many (notStr "(**" >> anyChar)
   spaces
   pure $ unlines
-    [ "{% highlight Coq %}"
-    , content ++ "{% endhighlight %}" ]
-  -- pure $ unlines
-  --   [ "{% highlight Coq %}"
-  --   , content
-  --   , "{% endhighlight %}" ]
+    ["{% highlight Coq %}"
+    , padding ++ c:ontent ++ "{% endhighlight %}" ]
 
 coqToMd = do
   spaces
-  content <- unlines <$> many1 (mdSection <|> coqSection)
-  spaces
-  eof
+  content <- concat <$> many (
+    many1 (newline <|> crlf) <|>
+    mdSection <|>
+    coqSection <|>
+    many1 space)
+  eof 
   pure content
 
 parseCoqToMd =

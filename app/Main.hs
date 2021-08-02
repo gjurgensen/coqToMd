@@ -63,7 +63,7 @@ run [Stamp a] = do
       "layout: post",
       "title: " ++ a,
       "date: " ++ formatDate date, 
-      "categories: Coq"
+      "categories: Coq",
       "---"]
 
 run [Help] = putStrLn helpMsg
