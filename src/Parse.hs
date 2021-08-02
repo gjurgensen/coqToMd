@@ -14,6 +14,15 @@ nonspace = satisfy $ not . isSpace
 
 notStr = notFollowedBy . string
 
+blankLine :: Stream s m Char => ParsecT s u m String
+blankLine = try $ do 
+  s <- many $ oneOf " \t\f\v"
+  nl <- newline <|> crlf
+  pure $ s ++ [nl]
+
+blankLines :: Stream s m Char => ParsecT s u m ()
+blankLines = skipMany blankLine
+
 mdSection :: Parsec String () String
 mdSection = do
   between (string "(**") (string "*)") $ do
@@ -25,16 +34,18 @@ mdSection = do
 coqSection = try $ do 
   padding <- many space
   c <- notStr "(**" >> nonspace
-  ontent <- many (notStr "(**" >> anyChar)
-  spaces
+  ontent <- many (
+    notFollowedBy (spaces >> string "(**") >>
+    anyChar)
   pure $ unlines
     ["{% highlight Coq %}"
-    , padding ++ c:ontent ++ "{% endhighlight %}" ]
+    , padding ++ c:ontent,
+    "{% endhighlight %}" ]
 
 coqToMd = do
   spaces
   content <- many (
-    many1 (newline <|> crlf) <|>
+    blankLine <|>
     mdSection <|>
     coqSection <|>
     many1 space)
