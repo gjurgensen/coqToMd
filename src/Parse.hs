@@ -17,9 +17,7 @@ notStr = notFollowedBy . string
 mdSection :: Parsec String () String
 mdSection = do
   between (string "(**") (string "*)") $ do
-    -- n <- num (spaces >> char '*')
-    spaces
-    n <- num (notStr "*)" >> char '*')
+    n <- num $ try ( spaces >> notStr "*)" >> char '*')
     content <- many (notStr "*)" >> anyChar)
     pure $ replicate n '#' ++ content
 
@@ -35,13 +33,13 @@ coqSection = try $ do
 
 coqToMd = do
   spaces
-  content <- concat <$> many (
+  content <- many (
     many1 (newline <|> crlf) <|>
     mdSection <|>
     coqSection <|>
     many1 space)
   eof 
-  pure content
+  pure $ concat content
 
 parseCoqToMd =
   parse coqToMd ""
